@@ -235,10 +235,20 @@
                 throw new Error("Not enough time slots for 1-minute gaps.");
             }
 
-            // Assign time with at least 1-minute gap
+            // Generate all available 1-minute slots
+            const availableMinutes = Array.from({ length: totalMinutes }, (_, i) => i);
+
+            // Shuffle the available minutes
+            for (let i = availableMinutes.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [availableMinutes[i], availableMinutes[j]] = [availableMinutes[j], availableMinutes[i]];
+            }
+
+            // Assign random time slots to each transaction
             for (let i = 0; i < transactions.length; i++) {
-                const time = new Date(start.getTime() + i * 60000); // 1-minute steps
-                transactions[i].time = time.toTimeString().substring(0, 5); // "HH:MM"
+                const minuteOffset = availableMinutes[i];
+                const time = new Date(start.getTime() + minuteOffset * 60000);
+                transactions[i].time = time.toTimeString().substring(0, 5); // Format "HH:MM"
             }
 
             return transactions;
