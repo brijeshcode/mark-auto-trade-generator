@@ -20,7 +20,7 @@
         <div class="card-body">
             <h5 class="card-title">Data Entry form</h5>
             <p class="card-text">Here we add the data paramenter to generate random trades.</p>
-            
+            <div id="errorsDisplay"></div>
             <form method="post" action="DataEntryController.php">
                 <div class="row">
                     <div class="col">
@@ -89,7 +89,7 @@
             to_customer_code : '<?= $settings['customer_code_to']; ?>', 
             currency : <?= $settings['currency']; ?>, 
         };
-
+        var errors = [];
         var dataEntry = <?= json_encode($entries); ?>;
 
         const columnOrder = [
@@ -147,13 +147,15 @@
  
 
         function generateTradeCsv(){
+            errors = [];
             let trades = [];
             dataEntry.forEach(entry => {
                 let tradesForEntry = [];
                 let currencySetting = getCurrencySettings(entry.currency_code);
                 
-                if (!currencySetting) {
-                    alert(`No currency setting found for ${entry.currency_code}`);
+                if (!currencySetting) { 
+                    errors.push(`No currency setting found for ${entry.currency_code}`);
+                    displayErrors();
                     console.error(`No currency setting found for ${entry.currency_code}`);
                     return;
                 }
@@ -192,6 +194,8 @@
             renderTable(trades);
 
             finalTransactions = trades; // Store final transactions for CSV download
+
+            displayErrors(); // Display any errors encountered during processing
         }
 
         function formatNumber(num) {
@@ -203,6 +207,8 @@
             const totalAvailable = customerCodeTo - customerCodeFrom + 1;
 
             if (totalAvailable < transactions.length) {
+                errors.push("Customer code range is too small for the number of transactions.");
+                displayErrors();
                 throw new Error("Customer code range is too small for the number of transactions.");
             }
 
@@ -232,6 +238,8 @@
             const totalMinutes = Math.floor((end - start) / 60000);
 
             if (transactions.length > totalMinutes) {
+                errors.push("Not enough time slots for 1-minute gaps.");
+                displayErrors();
                 throw new Error("Not enough time slots for 1-minute gaps.");
             }
 
@@ -260,6 +268,8 @@
             const dayDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
 
             if (dayDiff <= 0) {
+                errors.push("Invalid date range");
+                displayErrors();
                 throw new Error("Invalid date range");
             }
 
@@ -292,6 +302,8 @@
             const totalUnits = totalAmount / interval;
            
             if (!Number.isInteger(totalUnits)) {
+                errors.push("Total amount must be divisible by interval.");
+                displayErrors();
                 throw new Error("Total amount must be divisible by interval.");
             }
 
@@ -393,6 +405,26 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+        }
+
+        function displayErrors(){
+            const errorsDisplay = document.getElementById("errorsDisplay");
+            errorsDisplay.innerHTML = ""; // Clear previous errors
+
+            if (errors.length > 0) {
+                const errorList = document.createElement("ul");
+                errorList.className = "list-group list-group-flush";
+                errors.forEach(error => {
+                    const errorItem = document.createElement("li");
+                    errorItem.className = "list-group-item list-group-item-danger";
+                    errorItem.textContent = error;
+                    errorList.appendChild(errorItem);
+                });
+                errorsDisplay.appendChild(errorList);
+            } else {
+                errorsDisplay.innerHTML = "";
+                // errorsDisplay.innerHTML = "<p class='text-success'>No errors found.</p>";
+            }
         }
 
     </script>
