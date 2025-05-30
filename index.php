@@ -300,28 +300,28 @@
         
         function generateIntervalBasedAmounts(totalAmount, transactionCount, interval) {
             const totalUnits = totalAmount / interval;
-           
+
             if (!Number.isInteger(totalUnits)) {
                 errors.push("Total amount must be divisible by interval.");
                 displayErrors();
                 throw new Error("Total amount must be divisible by interval.");
             }
 
-            // Step 1: Generate random unit weights
-            let units = Array(transactionCount).fill(0).map(() => Math.random());
-            const sum = units.reduce((a, b) => a + b, 0);
-            units = units.map(u => Math.floor((u / sum) * totalUnits));
+            if (transactionCount > totalUnits) {
+                errors.push("Transaction count too high for the given total and interval.");
+                displayErrors();
+                throw new Error("Transaction count too high for the given total and interval.");
+            }
 
-            // Step 2: Adjust rounding errors
-            let unitSum = units.reduce((a, b) => a + b, 0);
-            let diff = totalUnits - unitSum;
+            // Step 1: Ensure each unit gets at least 1
+            let units = Array(transactionCount).fill(1);
+            let remainingUnits = totalUnits - transactionCount;
 
-            // Distribute remaining units
-            let i = 0;
-            while (diff > 0) {
-                units[i % transactionCount]++;
-                i++;
-                diff--;
+            // Step 2: Distribute remaining units randomly
+            while (remainingUnits > 0) {
+                const randomIndex = Math.floor(Math.random() * transactionCount);
+                units[randomIndex]++;
+                remainingUnits--;
             }
 
             // Step 3: Convert units to amounts
