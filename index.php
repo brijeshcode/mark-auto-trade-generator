@@ -96,9 +96,9 @@
             "date",
             "time",
             "customer_code",
+            "buy",
             "currency_code",
             "cv_currency",
-            "buy",
             "amount",
             "rate",
             "total"
@@ -109,9 +109,9 @@
             date: "Date",
             time: "Time",
             customer_code: "Customer Code",
+            buy: "Buy",
             currency_code: "Currency Code",
             cv_currency: "Cv Currency",
-            buy: "Buy",
             amount: "Amount",
             rate: "Rate",
             total: "Total"
