@@ -277,7 +277,11 @@
                 const randomDayOffset = Math.floor(Math.random() * dayDiff);
                 const date = new Date(startDate);
                 date.setDate(date.getDate() + randomDayOffset);
-                tx.date = date.toISOString().split('T')[0]; // Format: "YYYY-MM-DD"
+
+                const yyyy = date.getFullYear();
+                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                const dd = String(date.getDate()).padStart(2, '0');
+                tx.date = `${dd}-${mm}-${yyyy}`; // Format: "DD-MM-YYYY"
             }
 
             return transactions;
