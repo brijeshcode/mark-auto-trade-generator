@@ -266,6 +266,7 @@
             const startDate = new Date(startDateStr);
             const endDate = new Date(endDateStr);
             const dayDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+            const total = transactions.length;
 
             if (dayDiff <= 0) {
                 errors.push("Invalid date range");
@@ -273,15 +274,58 @@
                 throw new Error("Invalid date range");
             }
 
-            for (let tx of transactions) {
-                const randomDayOffset = Math.floor(Math.random() * dayDiff);
-                const date = new Date(startDate);
-                date.setDate(date.getDate() + randomDayOffset);
+            if (total < dayDiff) {
+                errors.push(`Not enough trades (${total}) to give each of the ${dayDiff} days at least 1 trade. Increase total trades or reduce the date range.`);
+                displayErrors();
+                throw new Error("Not enough trades for all days.");
+            }
 
+            const basePerDay = total / dayDiff;
+            const maxPerDay = Math.ceil(basePerDay * 1.25); // allow up to 25% above base
+
+            // Give every day at least 1 trade, then distribute the rest
+            let dayCounts = Array(dayDiff).fill(1);
+            let remaining = total - dayDiff;
+
+            let attempts = 0;
+            const maxAttempts = total * 200;
+            while (remaining > 0 && attempts < maxAttempts) {
+                const randomDay = Math.floor(Math.random() * dayDiff);
+                if (dayCounts[randomDay] < maxPerDay) {
+                    dayCounts[randomDay]++;
+                    remaining--;
+                }
+                attempts++;
+            }
+
+            // Fallback: force-place any leftovers if maxPerDay was too tight
+            let dayIdx = 0;
+            while (remaining > 0) {
+                dayCounts[dayIdx % dayDiff]++;
+                remaining--;
+                dayIdx++;
+            }
+
+            // Shuffle dayCounts so that "heavier" days are not always the first ones
+            for (let i = dayCounts.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [dayCounts[i], dayCounts[j]] = [dayCounts[j], dayCounts[i]];
+            }
+
+            // Assign dates to transactions in groups
+            let txIndex = 0;
+            for (let d = 0; d < dayDiff; d++) {
+                const date = new Date(startDate);
+                date.setDate(date.getDate() + d);
                 const yyyy = date.getFullYear();
                 const mm = String(date.getMonth() + 1).padStart(2, '0');
                 const dd = String(date.getDate()).padStart(2, '0');
-                tx.date = `${dd}-${mm}-${yyyy}`; // Format: "DD-MM-YYYY"
+                const dateStr = `${dd}-${mm}-${yyyy}`;
+
+                for (let i = 0; i < dayCounts[d]; i++) {
+                    transactions[txIndex].date = dateStr;
+                    txIndex++;
+                }
             }
 
             return transactions;
