@@ -20,8 +20,25 @@
         <div class="card-body">
             <h5 class="card-title">Data Entry form</h5>
             <p class="card-text">Here we add the data paramenter to generate random trades.</p>
+            <?php
+                $dateFrom = new DateTime($settings['date_from']);
+                $dateTo = new DateTime($settings['date_to']);
+                $dayCount = $dateFrom->diff($dateTo)->days + 1; // inclusive
+            ?>
+            <div class="alert alert-info py-2" role="alert">
+                Date range: <strong><?= $dateFrom->format('d-m-Y') ?></strong> to <strong><?= $dateTo->format('d-m-Y') ?></strong>
+                &mdash; <strong><?= $dayCount ?></strong> day<?= $dayCount == 1 ? '' : 's' ?>
+            </div>
             <div id="errorsDisplay"></div>
             <form method="post" action="DataEntryController.php">
+                <div class="row mb-3">
+                    <div class="col">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="random_trades" onchange="applyRandomMode()">
+                            <label class="form-check-label" for="random_trades">Random trades (spread randomly across days)</label>
+                        </div>
+                    </div>
+                </div>
                 <div class="row">
                     <div class="col">
                         <input type="hidden" id="entry_count" value="<?= count($entries) ?>">
@@ -31,6 +48,7 @@
                                     <th scope="col">Currency Code</th>
                                     <th scope="col">Total Amount</th>
                                     <th scope="col">Rate</th>
+                                    <th scope="col" class="per-day-col">Trades Per Day</th>
                                     <th scope="col">Total Trades</th>
                                     <th scope="col" class="px-2 py-2" >
                                         <span class="btn btn-outline-success btn-sm" onclick="appendRow()">Add</span>
@@ -43,7 +61,8 @@
                                         <td><input type="text" class="form-control" name="entry[<?php echo $key + 1; ?>][currency_code]" value="<?php echo htmlspecialchars($entry['currency_code']); ?>"></td>
                                         <td><input type="text" class="form-control" name="entry[<?php echo $key + 1; ?>][total_amount]" value="<?php echo htmlspecialchars($entry['total_amount']); ?>"></td>
                                         <td><input type="text" class="form-control" name="entry[<?php echo $key + 1; ?>][rate]" value="<?php echo htmlspecialchars($entry['rate']); ?>"></td>
-                                        <td><input type="text" class="form-control" name="entry[<?php echo $key + 1; ?>][total_trades]" value="<?php echo htmlspecialchars($entry['total_trades']); ?>"></td>
+                                        <td class="per-day-col"><input type="number" min="1" class="form-control per-day-input" oninput="onPerDayInput(this)"></td>
+                                        <td><input type="text" class="form-control total-trades-input" name="entry[<?php echo $key + 1; ?>][total_trades]" value="<?php echo htmlspecialchars($entry['total_trades']); ?>"></td>
                                         <td>
                                             <button type="button" class="btn-close" aria-label="Close" onclick="removeRow(<?php echo $key + 1; ?>)"></button>
                                         </td>
@@ -132,10 +151,12 @@
                 <td><input type="text" class="form-control" name="entry[${count}][currency_code]"></td>
                 <td><input type="text" class="form-control" name="entry[${count}][total_amount]"></td>
                 <td><input type="text" class="form-control" name="entry[${count}][rate]"></td>
-                <td><input type="text" class="form-control" name="entry[${count}][total_trades]"></td>
+                <td class="per-day-col"><input type="number" min="1" class="form-control per-day-input" oninput="onPerDayInput(this)"></td>
+                <td><input type="text" class="form-control total-trades-input" name="entry[${count}][total_trades]"></td>
                 <td><button type="button" class="btn-close" aria-label="Close" onclick="removeRow(${count})"></button></td>
             `;
             tbody.appendChild(newRow);
+            applyRandomMode();
         }
 
         function removeRow(count) {
@@ -144,10 +165,72 @@
                 row.remove();
             }
         }
- 
+
+        // Number of days in the settings date range (inclusive). 0 if invalid/unset.
+        function getDayCount() {
+            if (!settings.from_date || !settings.to_date) return 0;
+            const startDate = new Date(settings.from_date);
+            const endDate = new Date(settings.to_date);
+            const dayDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+            return dayDiff > 0 ? dayDiff : 0;
+        }
+
+        // Fixed mode: typing trades-per-day recomputes that row's total trades.
+        function onPerDayInput(input) {
+            const row = input.closest('tr');
+            const totalInput = row.querySelector('.total-trades-input');
+            const days = getDayCount();
+            const perDay = parseInt(input.value) || 0;
+            totalInput.value = (perDay >= 1 && days > 0) ? perDay * days : '';
+        }
+
+        // Sync a single row's per-day <-> total for fixed mode.
+        function initFixedRow(row) {
+            const days = getDayCount();
+            const perDayInput = row.querySelector('.per-day-input');
+            const totalInput = row.querySelector('.total-trades-input');
+            if (!perDayInput || !totalInput) return;
+
+            let perDay = parseInt(perDayInput.value) || 0;
+            const total = parseInt(totalInput.value) || 0;
+
+            // Derive per-day from an existing (saved) total when per-day is empty.
+            if (perDay < 1 && total > 0 && days > 0) {
+                perDay = Math.max(1, Math.round(total / days));
+                perDayInput.value = perDay;
+            }
+            if (perDay >= 1 && days > 0) {
+                totalInput.value = perDay * days;
+            }
+        }
+
+        // Apply the Random checkbox state to the whole form.
+        function applyRandomMode() {
+            const isRandom = document.getElementById('random_trades').checked;
+
+            // Show/hide the Trades Per Day column.
+            document.querySelectorAll('.per-day-col').forEach(el => {
+                el.style.display = isRandom ? 'none' : '';
+            });
+
+            // Total Trades is editable in random mode, computed (read-only) in fixed mode.
+            document.querySelectorAll('.total-trades-input').forEach(inp => {
+                if (isRandom) {
+                    inp.removeAttribute('readonly');
+                } else {
+                    inp.setAttribute('readonly', 'readonly');
+                }
+            });
+
+            if (!isRandom) {
+                document.querySelectorAll('tbody tr').forEach(row => initFixedRow(row));
+            }
+        }
+
 
         function generateTradeCsv(){
             errors = [];
+            const isRandom = document.getElementById('random_trades').checked;
             let trades = [];
             dataEntry.forEach(entry => {
                 let tradesForEntry = [];
@@ -181,12 +264,19 @@
                     tradesForEntry.push(trade);
                 });
 
+                // Fixed mode: give each day this row's per-day count (even split).
+                if (!isRandom) {
+                    tradesForEntry = assignDatesEvenly(tradesForEntry, settings.from_date, settings.to_date);
+                }
+
                 trades.push(...tradesForEntry);
             });
 
             trades = shuffleArray(trades);
             trades = assignTimes(trades, settings.from_time, settings.to_time);
-            trades = assignDates(trades, settings.from_date, settings.to_date);
+            if (isRandom) {
+                trades = assignDates(trades, settings.from_date, settings.to_date);
+            }
             trades = assignCustomerCodes(trades, settings.from_customer_code, settings.to_customer_code);
 
             document.getElementById("previewContainer").classList.remove("d-none");
@@ -323,6 +413,50 @@
                 const dateStr = `${dd}-${mm}-${yyyy}`;
 
                 for (let i = 0; i < dayCounts[d]; i++) {
+                    transactions[txIndex].date = dateStr;
+                    txIndex++;
+                }
+            }
+
+            return transactions;
+        }
+
+        // Fixed mode: distribute a row's trades evenly across all days.
+        // Each day gets floor(total/days); the remainder is spread one-per-day.
+        function assignDatesEvenly(transactions, startDateStr, endDateStr) {
+            const startDate = new Date(startDateStr);
+            const endDate = new Date(endDateStr);
+            const dayDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+
+            if (dayDiff <= 0) {
+                errors.push("Invalid date range");
+                displayErrors();
+                throw new Error("Invalid date range");
+            }
+
+            const total = transactions.length;
+            const base = Math.floor(total / dayDiff);
+            const remainder = total % dayDiff;
+
+            // base per day, plus one extra for the first `remainder` days
+            let dayCounts = Array.from({ length: dayDiff }, (_, d) => base + (d < remainder ? 1 : 0));
+
+            // Shuffle so the "+1" days are not always the first ones
+            for (let i = dayCounts.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [dayCounts[i], dayCounts[j]] = [dayCounts[j], dayCounts[i]];
+            }
+
+            let txIndex = 0;
+            for (let d = 0; d < dayDiff; d++) {
+                const date = new Date(startDate);
+                date.setDate(date.getDate() + d);
+                const yyyy = date.getFullYear();
+                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                const dd = String(date.getDate()).padStart(2, '0');
+                const dateStr = `${dd}-${mm}-${yyyy}`;
+
+                for (let i = 0; i < dayCounts[d] && txIndex < transactions.length; i++) {
                     transactions[txIndex].date = dateStr;
                     txIndex++;
                 }
@@ -474,6 +608,9 @@
                 // errorsDisplay.innerHTML = "<p class='text-success'>No errors found.</p>";
             }
         }
+
+        // Initialize the form to match the Random checkbox default (unchecked = fixed per-day mode).
+        applyRandomMode();
 
     </script>
         
