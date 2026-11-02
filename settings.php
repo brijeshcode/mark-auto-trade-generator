@@ -1,94 +1,57 @@
 <?php include 'header.php'; ?>
 <?php include 'SettingsController.php'; ?>
 
-<body class="container"> 
-      
-    <form action="/settings.php" method="post" class="mt-1">
+<body>
+<div class="app">
+    <?php include 'nav.php'; ?>
+    <main class="main">
+        <header class="page-head">
+            <h1>Settings</h1>
+            <p>The rules every generation follows: trade dates and times, customer codes, the per-customer limit and your currencies.</p>
+        </header>
 
-        <div class="card ">
-            <div class="card-header">
-                <ul class="nav nav-tabs card-header-tabs">
-                <li class="nav-item">
-                    <a class="nav-link" href="/">Data entry</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/history.php">History</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/summary.php">Summary</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link active" aria-current="true" href="#">Settings</a>
-                </li> 
-                </ul>
-            </div>
-            
-            <div class="card-body">
-                <?php if (isset($_GET['success']) && $_GET['success'] == 1) {
-                    echo '<div class="alert alert-success mt-3" role="alert">Settings saved successfully!</div>';
-                }
-                ?>
-                <h5 class="card-title">Settings</h5>
-                <p class="card-text">Here we add the settings to generate random trades.</p>
+        <?php if (isset($_GET['success']) && $_GET['success'] == 1): ?>
+            <div class="notice" role="status">Settings saved.</div>
+        <?php endif; ?>
 
-                <div class="row">
-                    <div class="col">
-                        <label for="exampleFormControlInput1" class="form-label">Date Range</label>
-                        <div class="row">
-                            <div class="col">
-                                <label for="exampleFormControlInput1" class="form-label">From</label>
-                                <input type="date" class="form-control" name="date_from" value="<?= $existingSettings['date_from'] ?? ''; ?>" >
-                            </div>
-                            <div class="col">
-                                <label for="exampleFormControlInput1" class="form-label">To</label>
-                                <input type="date" class="form-control" name="date_to" value="<?= $existingSettings['date_to'] ?? ''; ?>" >
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <label for="exampleFormControlInput1" class="form-label">Time Range</label>
-                        <div class="row">
-                            <div class="col">
-                                <label for="exampleFormControlInput1" class="form-label">From</label>
-                                <input type="time" class="form-control" name="time_from" value="<?= $existingSettings['time_from'] ?? ''; ?>"   >
-                            </div>
-                            <div class="col">
-                                <label for="exampleFormControlInput1" class="form-label">To</label>
-                                <input type="time" class="form-control" name="time_to" value="<?= $existingSettings['time_to'] ?? ''; ?>"   >
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <label for="exampleFormControlInput1" class="form-label">Customer code Range</label>
-                        <div class="row">
-                            <div class="col">
-                                <label for="exampleFormControlInput1" class="form-label">From</label>
-                                <input type="number" class="form-control" name="customer_code_from" value="<?= $existingSettings['customer_code_from'] ?? ''; ?>"  >
-                            </div>
-                            <div class="col">
-                                <label for="exampleFormControlInput1" class="form-label">To</label>
-                                <input type="number" class="form-control" name="customer_code_to" value="<?= $existingSettings['customer_code_to'] ?? ''; ?>"  >
-                            </div>
-                        </div>
-                    </div>
+        <form action="/settings.php" method="post">
+            <section class="panel">
+                <h2 class="panel-title">Trade window</h2>
+                <div class="row g-3">
+                    <div class="col-6 col-md-3"><label class="form-label" for="date_from">Date from</label>
+                        <input id="date_from" type="date" class="form-control" name="date_from" value="<?= $existingSettings['date_from'] ?? ''; ?>"></div>
+                    <div class="col-6 col-md-3"><label class="form-label" for="date_to">Date to</label>
+                        <input id="date_to" type="date" class="form-control" name="date_to" value="<?= $existingSettings['date_to'] ?? ''; ?>"></div>
+                    <div class="col-6 col-md-3"><label class="form-label" for="time_from">Time from</label>
+                        <input id="time_from" type="time" class="form-control" name="time_from" value="<?= $existingSettings['time_from'] ?? ''; ?>"></div>
+                    <div class="col-6 col-md-3"><label class="form-label" for="time_to">Time to</label>
+                        <input id="time_to" type="time" class="form-control" name="time_to" value="<?= $existingSettings['time_to'] ?? ''; ?>"></div>
                 </div>
-                <div class="row mt-3">
-                    <div class="col">
-                        <label class="form-label">Customer total amount upper limit (0 = no limit)</label>
-                        <input type="number" min="0" step="0.01" class="form-control" name="amount_limit" value="<?= $existingSettings['amount_limit'] ?? ''; ?>">
-                    </div>
-                    <div class="col">
-                        <label class="form-label">Restriction period (days back)</label>
-                        <input type="number" min="1" class="form-control" name="restriction_days" value="<?= $existingSettings['restriction_days'] ?? ''; ?>">
-                    </div>
-                    <div class="col"></div>
+            </section>
+
+            <section class="panel">
+                <h2 class="panel-title">Customers</h2>
+                <div class="row g-3">
+                    <div class="col-6 col-md-3"><label class="form-label" for="customer_code_from">Customer code from</label>
+                        <input id="customer_code_from" type="number" class="form-control" name="customer_code_from" value="<?= $existingSettings['customer_code_from'] ?? ''; ?>"></div>
+                    <div class="col-6 col-md-3"><label class="form-label" for="customer_code_to">Customer code to</label>
+                        <input id="customer_code_to" type="number" class="form-control" name="customer_code_to" value="<?= $existingSettings['customer_code_to'] ?? ''; ?>"></div>
+                    <div class="col-6 col-md-3"><label class="form-label" for="amount_limit">Customer amount upper limit</label>
+                        <input id="amount_limit" type="number" min="0" step="0.01" class="form-control" name="amount_limit" value="<?= $existingSettings['amount_limit'] ?? ''; ?>"></div>
+                    <div class="col-6 col-md-3"><label class="form-label" for="restriction_days">Look-back period (days)</label>
+                        <input id="restriction_days" type="number" min="1" class="form-control" name="restriction_days" value="<?= $existingSettings['restriction_days'] ?? ''; ?>"></div>
                 </div>
-            </div>
-            <div class="row">
-                <div class="col">
-                    currency Settings
-                    <table class="table table-primary  table-striped table-hover">
-                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <p class="hint mt-3 mb-0">A customer cannot trade more than this total amount, buys and sells combined, within the look-back period. Set the amount to 0 for no limit.</p>
+            </section>
+
+            <section class="panel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="panel-title mb-0">Currencies</h2>
+                    <button type="button" class="btn btn-outline-success btn-sm" onclick="appendRow()">Add currency</button>
+                </div>
+                <div class="table-wrap">
+                    <table class="table settings-table">
+                        <thead>
                             <tr>
                                 <th scope="col" class="px-2 py-2"><abbr title="currency code">Curr Code</abbr></th>
                                 <th scope="col" class="px-2 py-2">Name</th>
@@ -101,9 +64,7 @@
                                 <th scope="col" class="px-2 py-2">Sell to</th>
                                 <th scope="col" class="px-2 py-2">Interval</th>
                                 <th scope="col" class="px-2 py-2">CV curr.</th>
-                                <th scope="col" class="px-2 py-2" >
-                                    <span class="btn btn-outline-success btn-sm" onclick="appendRow()">Add</span>
-                                </th>
+                                <th scope="col"></th>
                             </tr>
                         </thead>
 
@@ -156,16 +117,14 @@
                             <?php } ?>
                         </tbody>
                     </table>
-
-                    <input type="hidden" id="currency_count" name="currency_count" value="<?= $currencyCount; ?>">
                 </div>
+                <input type="hidden" id="currency_count" name="currency_count" value="<?= $currencyCount; ?>">
+            </section>
 
-            </div>
-        </div> 
-        
-        
-        <button type="submit" class="btn btn-primary mt-3" name="save_settings">Save Settings</button>
-    </form>
+            <button type="submit" class="btn btn-primary px-4" name="save_settings">Save settings</button>
+        </form>
+    </main>
+</div>
 
 
 <script>

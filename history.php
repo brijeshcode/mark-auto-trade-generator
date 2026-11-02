@@ -38,87 +38,84 @@ $pages = max(1, (int)ceil($total / $perPage));
 $query = fn($p) => '?' . http_build_query(array_merge($f, ['per_page' => $perPage, 'page' => $p]));
 ?>
 
-<body class="container mx-auto">
-    <div class="card">
-        <div class="card-header">
-            <ul class="nav nav-tabs card-header-tabs">
-                <li class="nav-item"><a class="nav-link" href="/">Data entry</a></li>
-                <li class="nav-item"><a class="nav-link active" href="#">History</a></li>
-                <li class="nav-item"><a class="nav-link" href="/summary.php">Summary</a></li>
-                <li class="nav-item"><a class="nav-link" href="/settings.php">Settings</a></li>
-            </ul>
-        </div>
-        <div class="card-body">
-            <form method="get" class="bg-light border rounded p-3 mb-3"><div class="row g-3">
-                <div class="col-6 col-md-4 col-xl-2"><label class="form-label small text-muted mb-1">From date</label>
-                    <input type="date" class="form-control" name="from_date" value="<?= htmlspecialchars($f['from_date']) ?>"></div>
-                <div class="col-6 col-md-4 col-xl-2"><label class="form-label small text-muted mb-1">To date</label>
-                    <input type="date" class="form-control" name="to_date" value="<?= htmlspecialchars($f['to_date']) ?>"></div>
-                <div class="col-6 col-md-4 col-xl-2"><label class="form-label small text-muted mb-1">Customer code</label>
-                    <input type="text" class="form-control" name="customer_code" value="<?= htmlspecialchars($f['customer_code']) ?>"></div>
-                <div class="col-6 col-md-4 col-xl-2"><label class="form-label small text-muted mb-1">Currency code</label>
-                    <input type="text" class="form-control" name="currency_code" value="<?= htmlspecialchars($f['currency_code']) ?>"></div>
-                <div class="col-6 col-md-4 col-xl-2"><label class="form-label small text-muted mb-1">Type</label>
-                    <select class="form-select" name="type">
+<body>
+<div class="app">
+    <?php include 'nav.php'; ?>
+    <main class="main">
+        <header class="page-head">
+            <h1>History</h1>
+            <p>Every trade saved from a CSV download. Filter it, then download what you see.</p>
+        </header>
+
+        <form method="get" class="panel">
+            <div class="row g-3">
+                <div class="col-6 col-md-4 col-xl-2"><label class="form-label" for="f-from">From date</label>
+                    <input id="f-from" type="date" class="form-control" name="from_date" value="<?= htmlspecialchars($f['from_date']) ?>"></div>
+                <div class="col-6 col-md-4 col-xl-2"><label class="form-label" for="f-to">To date</label>
+                    <input id="f-to" type="date" class="form-control" name="to_date" value="<?= htmlspecialchars($f['to_date']) ?>"></div>
+                <div class="col-6 col-md-4 col-xl-2"><label class="form-label" for="f-cust">Customer code</label>
+                    <input id="f-cust" type="text" class="form-control" name="customer_code" value="<?= htmlspecialchars($f['customer_code']) ?>"></div>
+                <div class="col-6 col-md-4 col-xl-2"><label class="form-label" for="f-cur">Currency code</label>
+                    <input id="f-cur" type="text" class="form-control" name="currency_code" value="<?= htmlspecialchars($f['currency_code']) ?>"></div>
+                <div class="col-6 col-md-4 col-xl-2"><label class="form-label" for="f-type">Type</label>
+                    <select id="f-type" class="form-select" name="type">
                         <option value="">All</option>
                         <?php foreach (['Buy', 'Sell'] as $t): ?>
                             <option <?= $f['type'] === $t ? 'selected' : '' ?>><?= $t ?></option>
                         <?php endforeach; ?>
                     </select></div>
-                <div class="col-6 col-md-4 col-xl-2"><label class="form-label small text-muted mb-1">Page size</label>
-                    <select class="form-select" name="per_page">
+                <div class="col-6 col-md-4 col-xl-2"><label class="form-label" for="f-size">Page size</label>
+                    <select id="f-size" class="form-select" name="per_page">
                         <?php foreach ($sizes as $n): ?>
                             <option <?= $perPage === $n ? 'selected' : '' ?>><?= $n ?></option>
                         <?php endforeach; ?>
                     </select></div>
-                </div>
-                <div class="d-flex flex-wrap gap-2 mt-3 pt-3 border-top">
-                    <button class="btn btn-primary px-4">Filter</button>
-                    <a class="btn btn-outline-secondary" href="history.php">Reset</a>
-                    <a class="btn btn-success ms-auto" href="<?= $query(1) ?>&download=1">Download CSV</a>
-                </div>
-            </form>
-
-            <div class="row g-2 mb-3">
-                <?php foreach (['Total amount' => number_format($stats['total_amount'], 2), 'Customers' => $stats['customers'], 'Trades' => $stats['trades']] as $label => $value): ?>
-                    <div class="col"><div class="border rounded p-2 text-center">
-                        <div class="text-muted small"><?= $label ?></div>
-                        <div class="fs-4 fw-semibold"><?= $value ?></div>
-                    </div></div>
-                <?php endforeach; ?>
             </div>
-            <p class="text-muted small">Total amount counts <code>amount</code> for currency code 2, otherwise <code>total</code>. Stats cover all filtered results, not just this page.</p>
-            <div class="table-responsive">
-                <table class="table table-striped table-hover table-sm">
-                    <thead><tr>
-                        <th>Date</th><th>Time</th><th>Customer Code</th><th>Buy</th><th>Currency Code</th>
-                        <th>Cv Currency</th><th>Amount</th><th>Rate</th><th>Total</th>
-                    </tr></thead>
-                    <tbody>
-                    <?php foreach ($rows as $r): ?>
-                        <tr>
-                            <td><?= date('d-m-Y', strtotime($r['trade_date'])) ?></td>
-                            <td><?= substr($r['trade_time'], 0, 5) ?></td>
-                            <td><?= htmlspecialchars($r['customer_code']) ?></td>
-                            <td><?= htmlspecialchars($r['transaction_type']) ?></td>
-                            <td><?= htmlspecialchars($r['currency_code']) ?></td>
-                            <td><?= htmlspecialchars($r['cv_currency']) ?></td>
-                            <td><?= $r['amount'] ?></td>
-                            <td><?= $r['rate'] ?></td>
-                            <td><?= $r['total'] ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                    <?php if (!$rows): ?><tr><td colspan="9" class="text-center text-muted">No trades found</td></tr><?php endif; ?>
-                    </tbody>
-                </table>
+            <div class="panel-actions">
+                <button class="btn btn-primary px-4">Apply filters</button>
+                <a class="btn btn-outline-dark" href="history.php">Reset</a>
+                <a class="btn btn-outline-dark ms-auto" href="<?= $query(1) ?>&download=1">Download CSV</a>
             </div>
+        </form>
 
-            <nav><ul class="pagination">
-                <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>"><a class="page-link" href="<?= $query($page - 1) ?>">Previous</a></li>
-                <li class="page-item disabled"><span class="page-link">Page <?= $page ?> of <?= $pages ?></span></li>
-                <li class="page-item <?= $page >= $pages ? 'disabled' : '' ?>"><a class="page-link" href="<?= $query($page + 1) ?>">Next</a></li>
-            </ul></nav>
+        <div class="stats">
+            <?php foreach (['Total amount' => number_format($stats['total_amount'], 2), 'Customers' => number_format($stats['customers']), 'Trades' => number_format($stats['trades'])] as $label => $value): ?>
+                <div class="stat"><div class="stat-label"><?= $label ?></div><div class="stat-value"><?= $value ?></div></div>
+            <?php endforeach; ?>
         </div>
-    </div>
-    <?php include 'footer.php'; ?>
+        <p class="stat-note">Total amount counts <code>amount</code> for currency code 2, otherwise <code>total</code>. Stats cover every filtered trade, not just this page.</p>
+
+        <div class="table-wrap">
+            <table class="table table-hover">
+                <thead><tr>
+                    <th>Date</th><th>Time</th><th>Customer</th><th>Type</th><th>Currency</th>
+                    <th>Cv currency</th><th class="num">Amount</th><th class="num">Rate</th><th class="num">Total</th>
+                </tr></thead>
+                <tbody>
+                <?php foreach ($rows as $r): ?>
+                    <tr>
+                        <td><?= date('d-m-Y', strtotime($r['trade_date'])) ?></td>
+                        <td class="num text-start"><?= substr($r['trade_time'], 0, 5) ?></td>
+                        <td class="num text-start"><?= htmlspecialchars($r['customer_code']) ?></td>
+                        <td><span class="tag tag-<?= strtolower($r['transaction_type']) ?>"><?= htmlspecialchars($r['transaction_type']) ?></span></td>
+                        <td><?= htmlspecialchars($r['currency_code']) ?></td>
+                        <td><?= htmlspecialchars($r['cv_currency']) ?></td>
+                        <td class="num"><?= $r['amount'] ?></td>
+                        <td class="num"><?= $r['rate'] ?></td>
+                        <td class="num"><?= $r['total'] ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                <?php if (!$rows): ?><tr><td colspan="9" class="text-center text-muted py-4">No trades match these filters. Widen the dates or reset the filters.</td></tr><?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+
+        <nav aria-label="Pages"><ul class="pagination">
+            <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>"><a class="page-link" href="<?= $query($page - 1) ?>">Previous</a></li>
+            <li class="page-item disabled"><span class="page-link">Page <?= $page ?> of <?= $pages ?></span></li>
+            <li class="page-item <?= $page >= $pages ? 'disabled' : '' ?>"><a class="page-link" href="<?= $query($page + 1) ?>">Next</a></li>
+        </ul></nav>
+    </main>
+</div>
+<?php include 'footer.php'; ?>
 </body>

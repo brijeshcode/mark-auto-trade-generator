@@ -1,107 +1,81 @@
 <?php
     include 'header.php'; 
     include 'DataEntryController.php';
+    $dateFrom = new DateTime($settings['date_from']);
+    $dateTo = new DateTime($settings['date_to']);
+    $dayCount = $dateFrom->diff($dateTo)->days + 1; // inclusive
  ?>
 
-<body class="container mx-auto bg-gray-100">
-    
+<body>
+<div class="app">
+    <?php include 'nav.php'; ?>
+    <main class="main">
+        <header class="page-head">
+            <h1>Generate trades</h1>
+            <p>Enter what each currency should trade, then generate a preview and download it as CSV.</p>
+        </header>
 
-    <div class="card ">
-        <div class="card-header">
-            <ul class="nav nav-tabs card-header-tabs">
-            <li class="nav-item">
-                <a class="nav-link active" aria-current="true" href="#">Data entry</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="/history.php">History</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="/summary.php">Summary</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="/settings.php">Settings</a>
-            </li> 
-            </ul>
+        <div class="notice">
+            Trade dates <strong><?= $dateFrom->format('d-m-Y') ?></strong> to <strong><?= $dateTo->format('d-m-Y') ?></strong>
+            &middot; <strong><?= $dayCount ?></strong> day<?= $dayCount == 1 ? '' : 's' ?>
         </div>
-        <div class="card-body">
-            <h5 class="card-title">Data Entry form</h5>
-            <p class="card-text">Here we add the data paramenter to generate random trades.</p>
-            <?php
-                $dateFrom = new DateTime($settings['date_from']);
-                $dateTo = new DateTime($settings['date_to']);
-                $dayCount = $dateFrom->diff($dateTo)->days + 1; // inclusive
-            ?>
-            <div class="alert alert-info py-2" role="alert">
-                Date range: <strong><?= $dateFrom->format('d-m-Y') ?></strong> to <strong><?= $dateTo->format('d-m-Y') ?></strong>
-                &mdash; <strong><?= $dayCount ?></strong> day<?= $dayCount == 1 ? '' : 's' ?>
-            </div>
-            <div id="errorsDisplay"></div>
-            <form method="post" action="DataEntryController.php">
-                <div class="row mb-3">
-                    <div class="col">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="random_trades" onchange="applyRandomMode()">
-                            <label class="form-check-label" for="random_trades">Random trades (spread randomly across days)</label>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col">
-                        <input type="hidden" id="entry_count" value="<?= count($entries) ?>">
-                        <table class="table table-warning table-striped-columns  table-hover">
-                            <thead>
-                                <tr>
-                                    <th scope="col">Currency Code</th>
-                                    <th scope="col">Total Amount</th>
-                                    <th scope="col">Rate</th>
-                                    <th scope="col" class="per-day-col">Trades Per Day</th>
-                                    <th scope="col">Total Trades</th>
-                                    <th scope="col" class="px-2 py-2" >
-                                        <span class="btn btn-outline-success btn-sm" onclick="appendRow()">Add</span>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach($entries as $key => $entry): ?>
-                                    <tr id="entry-<?php echo $key + 1; ?>">
-                                        <td><input type="text" class="form-control" name="entry[<?php echo $key + 1; ?>][currency_code]" value="<?php echo htmlspecialchars($entry['currency_code']); ?>"></td>
-                                        <td><input type="text" class="form-control" name="entry[<?php echo $key + 1; ?>][total_amount]" value="<?php echo htmlspecialchars($entry['total_amount']); ?>"></td>
-                                        <td><input type="text" class="form-control" name="entry[<?php echo $key + 1; ?>][rate]" value="<?php echo htmlspecialchars($entry['rate']); ?>"></td>
-                                        <td class="per-day-col"><input type="number" min="1" class="form-control per-day-input" oninput="onPerDayInput(this)"></td>
-                                        <td><input type="text" class="form-control total-trades-input" name="entry[<?php echo $key + 1; ?>][total_trades]" value="<?php echo htmlspecialchars($entry['total_trades']); ?>"></td>
-                                        <td>
-                                            <button type="button" class="btn-close" aria-label="Close" onclick="removeRow(<?php echo $key + 1; ?>)"></button>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        <table>
-                    </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col">
-                        <button type="button" class="btn btn-primary" onclick="generateTradeCsv()">Generate trades</button>
-                        <button type="submit" name="save_trades" class="btn btn-primary">Save trades</button>
-                    </div>
-                </div>
-            </form>
-        </div> 
-    </div>
+        <div id="errorsDisplay"></div>
 
-    <div class="container mt-5 d-none" id="previewContainer">
-        <hr>
-        <h2 class="mb-4">Transaction Preview 
-            <button type="button" class="btn btn-primary mt-3" onclick="downloadCSV()">
-            <i class="bi bi-download"></i> Download as CSV
-            </button>
-        </h2>
-        
-        <div class="table-responsive" id="previewTable"></div>
-        
-        
-    </div>
-    
+        <form method="post" action="DataEntryController.php" class="panel">
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="random_trades" onchange="applyRandomMode()">
+                <label class="form-check-label" for="random_trades">Random trades (spread randomly across days)</label>
+            </div>
+
+            <input type="hidden" id="entry_count" value="<?= count($entries) ?>">
+            <div class="table-wrap">
+                <table class="table entry-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Currency code</th>
+                            <th scope="col">Total amount</th>
+                            <th scope="col">Rate</th>
+                            <th scope="col" class="per-day-col">Trades per day</th>
+                            <th scope="col">Total trades</th>
+                            <th scope="col" class="text-end">
+                                <button type="button" class="btn btn-outline-success btn-sm" onclick="appendRow()">Add row</button>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach($entries as $key => $entry): ?>
+                            <tr id="entry-<?php echo $key + 1; ?>">
+                                <td><input type="text" class="form-control" name="entry[<?php echo $key + 1; ?>][currency_code]" value="<?php echo htmlspecialchars($entry['currency_code']); ?>"></td>
+                                <td><input type="text" class="form-control" name="entry[<?php echo $key + 1; ?>][total_amount]" value="<?php echo htmlspecialchars($entry['total_amount']); ?>"></td>
+                                <td><input type="text" class="form-control" name="entry[<?php echo $key + 1; ?>][rate]" value="<?php echo htmlspecialchars($entry['rate']); ?>"></td>
+                                <td class="per-day-col"><input type="number" min="1" class="form-control per-day-input" oninput="onPerDayInput(this)"></td>
+                                <td><input type="text" class="form-control total-trades-input" name="entry[<?php echo $key + 1; ?>][total_trades]" value="<?php echo htmlspecialchars($entry['total_trades']); ?>"></td>
+                                <td class="text-end">
+                                    <button type="button" class="btn-close" aria-label="Remove row" onclick="removeRow(<?php echo $key + 1; ?>)"></button>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="panel-actions">
+                <button type="button" class="btn btn-primary" onclick="generateTradeCsv()">Generate trades</button>
+                <button type="submit" name="save_trades" class="btn btn-outline-dark">Save entries</button>
+                <span class="hint">Save entries keeps these rows for next time. Trades are saved when you download the CSV.</span>
+            </div>
+        </form>
+
+        <section class="d-none" id="previewContainer">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="panel-title mb-0">Preview</h2>
+                <button type="button" class="btn btn-primary" onclick="downloadCSV()">Download CSV</button>
+            </div>
+            <div class="table-wrap" id="previewTable"></div>
+        </section>
+    </main>
+</div>
+
     <?php include 'footer.php'; ?>
 
     <script>
@@ -573,17 +547,22 @@
 
         function renderTable(data) {
             if (!data || data.length === 0) {
-                document.getElementById("previewTable").innerHTML = "<p>No data available.</p>";
+                document.getElementById("previewTable").innerHTML = "<p class='p-3 mb-0 text-muted'>No trades to show. Check the entries and settings, then generate again.</p>";
                 return;
             }
 
-            let table = `<table class="table table-bordered table-hover table-sm align-middle">
-                <thead class="table-light">
-                <tr>${columnOrder.map(h => `<th>${h.replace(/_/g, " ").toUpperCase()}</th>`).join("")}</tr>
+            const numeric = ["amount", "rate", "total"];
+            const cell = (key, value) => key === "buy"
+                ? `<td><span class="tag tag-${String(value).toLowerCase()}">${value}</span></td>`
+                : `<td${numeric.includes(key) ? ' class="num"' : ''}>${value}</td>`;
+
+            let table = `<table class="table table-hover align-middle">
+                <thead>
+                <tr>${columnOrder.map(h => `<th${numeric.includes(h) ? ' class="num"' : ''}>${columnHeaders[h] || h}</th>`).join("")}</tr>
                 </thead>
                 <tbody>
                 ${data.map(row => `
-                    <tr>${columnOrder.map(key => `<td>${row[key]}</td>`).join("")}</tr>
+                    <tr>${columnOrder.map(key => cell(key, row[key])).join("")}</tr>
                 `).join("")}
                 </tbody>
             </table>`;

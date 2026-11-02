@@ -22,76 +22,72 @@ $pages = max(1, (int)ceil($total / $perPage));
 $query = fn($p) => '?' . http_build_query(array_merge(array_diff_key($f, ['currency_code' => 1]), ['per_page' => $perPage, 'page' => $p]));
 ?>
 
-<body class="container mx-auto">
-    <div class="card">
-        <div class="card-header">
-            <ul class="nav nav-tabs card-header-tabs">
-                <li class="nav-item"><a class="nav-link" href="/">Data entry</a></li>
-                <li class="nav-item"><a class="nav-link" href="/history.php">History</a></li>
-                <li class="nav-item"><a class="nav-link active" href="#">Summary</a></li>
-                <li class="nav-item"><a class="nav-link" href="/settings.php">Settings</a></li>
-            </ul>
-        </div>
-        <div class="card-body">
-            <form method="get" class="bg-light border rounded p-3 mb-3"><div class="row g-3">
-                <div class="col-6 col-md-3"><label class="form-label small text-muted mb-1">From date</label>
-                    <input type="date" class="form-control" name="from_date" value="<?= htmlspecialchars($f['from_date']) ?>"></div>
-                <div class="col-6 col-md-3"><label class="form-label small text-muted mb-1">To date</label>
-                    <input type="date" class="form-control" name="to_date" value="<?= htmlspecialchars($f['to_date']) ?>"></div>
-                <div class="col-6 col-md-3"><label class="form-label small text-muted mb-1">Customer code</label>
-                    <input type="text" class="form-control" name="customer_code" value="<?= htmlspecialchars($f['customer_code']) ?>"></div>
-                <div class="col-6 col-md-3"><label class="form-label small text-muted mb-1">Type</label>
-                    <select class="form-select" name="type">
+<body>
+<div class="app">
+    <?php include 'nav.php'; ?>
+    <main class="main">
+        <header class="page-head">
+            <h1>Summary</h1>
+            <p>Trade count and total amount per customer. Select a customer to see their trades.</p>
+        </header>
+
+        <form method="get" class="panel">
+            <div class="row g-3">
+                <div class="col-6 col-md-3"><label class="form-label" for="f-from">From date</label>
+                    <input id="f-from" type="date" class="form-control" name="from_date" value="<?= htmlspecialchars($f['from_date']) ?>"></div>
+                <div class="col-6 col-md-3"><label class="form-label" for="f-to">To date</label>
+                    <input id="f-to" type="date" class="form-control" name="to_date" value="<?= htmlspecialchars($f['to_date']) ?>"></div>
+                <div class="col-6 col-md-2"><label class="form-label" for="f-cust">Customer code</label>
+                    <input id="f-cust" type="text" class="form-control" name="customer_code" value="<?= htmlspecialchars($f['customer_code']) ?>"></div>
+                <div class="col-6 col-md-2"><label class="form-label" for="f-type">Type</label>
+                    <select id="f-type" class="form-select" name="type">
                         <option value="">All</option>
                         <?php foreach (['Buy', 'Sell'] as $t): ?>
                             <option <?= $f['type'] === $t ? 'selected' : '' ?>><?= $t ?></option>
                         <?php endforeach; ?>
                     </select></div>
-                <div class="col-6 col-md-3"><label class="form-label small text-muted mb-1">Page size</label>
-                    <select class="form-select" name="per_page">
+                <div class="col-6 col-md-2"><label class="form-label" for="f-size">Page size</label>
+                    <select id="f-size" class="form-select" name="per_page">
                         <?php foreach ($sizes as $n): ?>
                             <option <?= $perPage === $n ? 'selected' : '' ?>><?= $n ?></option>
                         <?php endforeach; ?>
                     </select></div>
-                </div>
-                <div class="d-flex flex-wrap gap-2 mt-3 pt-3 border-top">
-                    <button class="btn btn-primary px-4">Filter</button>
-                    <a class="btn btn-outline-secondary" href="summary.php">Reset</a>
-                </div>
-            </form>
-
-            <div class="row g-2 mb-3">
-                <?php foreach (['Total amount' => number_format($stats['total_amount'], 2), 'Customers' => $stats['customers'], 'Trades' => $stats['trades']] as $label => $value): ?>
-                    <div class="col"><div class="border rounded p-2 text-center">
-                        <div class="text-muted small"><?= $label ?></div>
-                        <div class="fs-4 fw-semibold"><?= $value ?></div>
-                    </div></div>
-                <?php endforeach; ?>
             </div>
-            <p class="text-muted small">Total amount counts <code>amount</code> for currency code 2, otherwise <code>total</code>. Sorted by total amount, highest first.</p>
-
-            <div class="table-responsive">
-                <table class="table table-striped table-hover table-sm">
-                    <thead><tr><th>Customer Code</th><th>Trades</th><th>Total Amount</th></tr></thead>
-                    <tbody>
-                    <?php foreach ($rows as $r): ?>
-                        <tr>
-                            <td><a href="history.php?<?= htmlspecialchars(http_build_query(array_merge($f, ['customer_code' => $r['customer_code']]))) ?>"><?= htmlspecialchars($r['customer_code']) ?></a></td>
-                            <td><?= $r['trades'] ?></td>
-                            <td><?= number_format($r['total_amount'], 2) ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                    <?php if (!$rows): ?><tr><td colspan="3" class="text-center text-muted">No trades found</td></tr><?php endif; ?>
-                    </tbody>
-                </table>
+            <div class="panel-actions">
+                <button class="btn btn-primary px-4">Apply filters</button>
+                <a class="btn btn-outline-dark" href="summary.php">Reset</a>
             </div>
+        </form>
 
-            <nav><ul class="pagination">
-                <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>"><a class="page-link" href="<?= $query($page - 1) ?>">Previous</a></li>
-                <li class="page-item disabled"><span class="page-link">Page <?= $page ?> of <?= $pages ?></span></li>
-                <li class="page-item <?= $page >= $pages ? 'disabled' : '' ?>"><a class="page-link" href="<?= $query($page + 1) ?>">Next</a></li>
-            </ul></nav>
+        <div class="stats">
+            <?php foreach (['Total amount' => number_format($stats['total_amount'], 2), 'Customers' => number_format($stats['customers']), 'Trades' => number_format($stats['trades'])] as $label => $value): ?>
+                <div class="stat"><div class="stat-label"><?= $label ?></div><div class="stat-value"><?= $value ?></div></div>
+            <?php endforeach; ?>
         </div>
-    </div>
-    <?php include 'footer.php'; ?>
+        <p class="stat-note">Total amount counts <code>amount</code> for currency code 2, otherwise <code>total</code>. Highest total first.</p>
+
+        <div class="table-wrap">
+            <table class="table table-hover">
+                <thead><tr><th>Customer</th><th class="num">Trades</th><th class="num">Total amount</th></tr></thead>
+                <tbody>
+                <?php foreach ($rows as $r): ?>
+                    <tr>
+                        <td class="num text-start"><a href="history.php?<?= htmlspecialchars(http_build_query(array_merge($f, ['customer_code' => $r['customer_code']]))) ?>"><?= htmlspecialchars($r['customer_code']) ?></a></td>
+                        <td class="num"><?= $r['trades'] ?></td>
+                        <td class="num"><?= number_format($r['total_amount'], 2) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+                <?php if (!$rows): ?><tr><td colspan="3" class="text-center text-muted py-4">No trades match these filters. Widen the dates or reset the filters.</td></tr><?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+
+        <nav aria-label="Pages"><ul class="pagination">
+            <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>"><a class="page-link" href="<?= $query($page - 1) ?>">Previous</a></li>
+            <li class="page-item disabled"><span class="page-link">Page <?= $page ?> of <?= $pages ?></span></li>
+            <li class="page-item <?= $page >= $pages ? 'disabled' : '' ?>"><a class="page-link" href="<?= $query($page + 1) ?>">Next</a></li>
+        </ul></nav>
+    </main>
+</div>
+<?php include 'footer.php'; ?>
 </body>
