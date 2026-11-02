@@ -17,7 +17,7 @@ Open http://127.0.0.1:8080. Database credentials are in `db.php`; the table defi
 | Page | What it does |
 |------|--------------|
 | **Generate trades** (`index.php`) | Enter currency code, total amount, rate and trades per day (or total trades). Generate a preview, then download the CSV. |
-| **History** (`history.php`) | Every saved trade, with filters, pagination, stats and CSV download. |
+| **History** (`history.php`) | Every saved trade, with filters, pagination, stats, CSV download and bulk delete. |
 | **Summary** (`summary.php`) | Trade count and total amount per customer. A customer code links to History with the same filters. |
 | **Settings** (`settings.php`) | Trade dates and times, customer code range, customer amount upper limit, look-back days and the currency table. |
 
@@ -55,6 +55,7 @@ Trades are saved to the `trades` table when you click **Download CSV** on the Ge
 - **Filters**: from date, to date, customer code, currency code (History only), type (Buy/Sell) and page size (default 100). From date defaults to the start of the look-back window.
 - **Stats**: total amount (same counting rule as the limit), distinct customers and trade count, over every filtered trade.
 - **Download CSV** (History): exports all trades matching the current applied filters, with the same columns as the Generate CSV.
+- **Delete** (History): tick trades (or the header box for the whole page) and click **Delete selected (n)**. You confirm first, and it cannot be undone. Selection covers the current page only. Deleting frees that customer's room under the amount limit straight away.
 
 ## Files
 
