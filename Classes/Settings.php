@@ -31,6 +31,8 @@ class Settings {
         $data['time_to'] = $settings['time_to'] ?? null;
         $data['customer_code_from'] = $settings['customer_code_from'] ?? null;
         $data['customer_code_to'] = $settings['customer_code_to'] ?? null;
+        $data['amount_limit'] = $settings['amount_limit'] ?? null;
+        $data['restriction_days'] = $settings['restriction_days'] ?? null;
         $data['currency'] = json_encode($settings['currency'] ?? []);
 
         $stmt = $this->pdo->prepare("INSERT INTO settings (setting_key, value) VALUES (:setting_key, :value) ON DUPLICATE KEY UPDATE value = :value_update");

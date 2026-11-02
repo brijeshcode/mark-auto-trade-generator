@@ -56,4 +56,23 @@ CREATE TABLE `auto_trade_generator`.`data_entry` (
     ) ENGINE = InnoDB;
 
 
+CREATE TABLE `trades` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `batch_id` varchar(64) NOT NULL,
+  `trade_date` date NOT NULL,
+  `trade_time` time NOT NULL,
+  `customer_code` varchar(40) NOT NULL,
+  `transaction_type` varchar(10) NOT NULL,
+  `currency_code` varchar(20) NOT NULL,
+  `cv_currency` varchar(20) DEFAULT NULL,
+  `amount` decimal(18,2) NOT NULL,
+  `rate` decimal(18,4) NOT NULL,
+  `total` decimal(18,2) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_customer_date` (`customer_code`,`trade_date`),
+  KEY `idx_batch` (`batch_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
 */

@@ -12,6 +12,12 @@
                     <a class="nav-link" href="/">Data entry</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" href="/history.php">History</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/summary.php">Summary</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link active" aria-current="true" href="#">Settings</a>
                 </li> 
                 </ul>
@@ -65,6 +71,17 @@
                             </div>
                         </div>
                     </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col">
+                        <label class="form-label">Customer total amount upper limit (0 = no limit)</label>
+                        <input type="number" min="0" step="0.01" class="form-control" name="amount_limit" value="<?= $existingSettings['amount_limit'] ?? ''; ?>">
+                    </div>
+                    <div class="col">
+                        <label class="form-label">Restriction period (days back)</label>
+                        <input type="number" min="1" class="form-control" name="restriction_days" value="<?= $existingSettings['restriction_days'] ?? ''; ?>">
+                    </div>
+                    <div class="col"></div>
                 </div>
             </div>
             <div class="row">

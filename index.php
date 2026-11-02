@@ -13,6 +13,12 @@
                 <a class="nav-link active" aria-current="true" href="#">Data entry</a>
             </li>
             <li class="nav-item">
+                <a class="nav-link" href="/history.php">History</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/summary.php">Summary</a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link" href="/settings.php">Settings</a>
             </li> 
             </ul>
@@ -106,7 +112,10 @@
             to_time : '<?= $settings['time_to']; ?>', 
             from_customer_code : '<?= $settings['customer_code_from']; ?>', 
             to_customer_code : '<?= $settings['customer_code_to']; ?>', 
-            currency : <?= $settings['currency']; ?>, 
+            currency : <?= $settings['currency']; ?>,
+            amount_limit : <?= (float)($settings['amount_limit'] ?? 0); ?>,
+            restriction_days : <?= (int)($settings['restriction_days'] ?? 0); ?>,
+            used_amounts : <?= json_encode((object)$usedAmounts); ?>,
         };
         var errors = [];
         var dataEntry = <?= json_encode($entries); ?>;
@@ -137,6 +146,7 @@
         };
         
         var finalTransactions = [];
+        var batchId = null;
         // console.log(settings, dataEntry);
          
         function appendRow() {
@@ -284,6 +294,7 @@
             renderTable(trades);
 
             finalTransactions = trades; // Store final transactions for CSV download
+            batchId = Date.now() + '-' + Math.random().toString(36).slice(2); // one id per generation so re-downloads aren't saved twice
 
             displayErrors(); // Display any errors encountered during processing
         }
@@ -314,10 +325,31 @@
                 [availableCodes[i], availableCodes[j]] = [availableCodes[j], availableCodes[i]];
             }
 
-            // Assign to transactions
-            transactions.forEach((tx, index) => {
-                tx.customer_code = availableCodes[index];
-            });
+            const limited = settings.amount_limit > 0 && settings.restriction_days > 0;
+            if (!limited) {
+                transactions.forEach((tx, index) => {
+                    tx.customer_code = availableCodes[index];
+                });
+                return transactions;
+            }
+
+            // Biggest trades pick first so they get the customers with the most room left.
+            // ponytail: greedy, not an optimal matching; can report "no customer" where a perfect packing exists.
+            const counted = tx => parseFloat(tx.currency_code) === 2 ? parseFloat(tx.amount) : parseFloat(tx.total);
+            const order = transactions.map((_, i) => i).sort((a, b) => counted(transactions[b]) - counted(transactions[a]));
+
+            for (const i of order) {
+                const tx = transactions[i];
+                const value = counted(tx);
+                const pick = availableCodes.findIndex(code => value <= settings.amount_limit - (parseFloat(settings.used_amounts[code]) || 0));
+                if (pick === -1) {
+                    const msg = `No customer is available in range ${customerCodeFrom}-${customerCodeTo} for the limit ${settings.amount_limit} over the last ${settings.restriction_days} days (${transactions.length} trades to place, a ${tx.buy} of ${value} could not be assigned).`;
+                    errors.push(msg);
+                    displayErrors();
+                    throw new Error(msg);
+                }
+                tx.customer_code = availableCodes.splice(pick, 1)[0];
+            }
 
             return transactions;
         }
@@ -560,8 +592,27 @@
         }
         
         // CSV download using columnOrder
-        function downloadCSV() {
-      
+        async function downloadCSV() {
+            try {
+                const res = await fetch('save_trades_ajax.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ batch_id: batchId, trades: finalTransactions })
+                });
+                const body = await res.json();
+                if (!res.ok) throw new Error(body.error || res.statusText);
+                if (body.saved) { // keep this page's usage current for the next generation
+                    finalTransactions.forEach(tx => {
+                        const v = parseFloat(tx.currency_code) === 2 ? parseFloat(tx.amount) : parseFloat(tx.total);
+                        settings.used_amounts[tx.customer_code] = (parseFloat(settings.used_amounts[tx.customer_code]) || 0) + v;
+                    });
+                }
+            } catch (e) {
+                errors.push('Trades were not saved, CSV not downloaded: ' + e.message);
+                displayErrors();
+                return;
+            }
+
             const csvRows = [
                 // Use custom header names for CSV first row
                 columnOrder.map(col => `"${columnHeaders[col] || col}"`).join(","),

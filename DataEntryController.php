@@ -20,3 +20,9 @@ $entries = $dataEntry->all();
 
 $settingsObj = new Settings($pdo);
 $settings = $settingsObj->all();
+
+require_once 'Classes/Trades.php';
+$usedAmounts = [];
+if ((float)($settings['amount_limit'] ?? 0) > 0 && (int)($settings['restriction_days'] ?? 0) > 0) {
+    $usedAmounts = (new Trades($pdo))->usedByCustomer($settings['restriction_days']);
+}
