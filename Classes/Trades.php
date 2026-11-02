@@ -74,6 +74,15 @@ class Trades {
         return $stmt->fetch();
     }
 
+    // Deletes trades by id; returns how many were removed.
+    public function delete($ids) {
+        $ids = array_values(array_filter(array_map('intval', $ids)));
+        if (!$ids) return 0;
+        $stmt = $this->pdo->prepare("DELETE FROM trades WHERE id IN (" . implode(',', array_fill(0, count($ids), '?')) . ")");
+        $stmt->execute($ids);
+        return $stmt->rowCount();
+    }
+
     // Every row matching the filters (for CSV export).
     public function all($f) {
         [$sql, $params] = $this->filter($f);

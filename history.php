@@ -32,9 +32,22 @@ if (isset($_GET['download'])) {
     exit;
 }
 
+if (!empty($_POST['delete_ids']) && is_array($_POST['delete_ids'])) {
+    $n = $tradesObj->delete($_POST['delete_ids']);
+    parse_str($_POST['return'] ?? '', $back);
+    unset($back['deleted']);
+    ob_end_clean();
+    header('Location: history.php?' . http_build_query($back + ['deleted' => $n]));
+    exit;
+}
+
 [$rows, $total] = $tradesObj->search($f, $page, $perPage);
 $stats = $tradesObj->stats($f);
 $pages = max(1, (int)ceil($total / $perPage));
+if ($page > $pages) { // e.g. the last page was just emptied by a delete
+    $page = $pages;
+    [$rows] = $tradesObj->search($f, $page, $perPage);
+}
 $query = fn($p) => '?' . http_build_query(array_merge($f, ['per_page' => $perPage, 'page' => $p]));
 ?>
 
@@ -46,6 +59,10 @@ $query = fn($p) => '?' . http_build_query(array_merge($f, ['per_page' => $perPag
             <h1>History</h1>
             <p>Every trade saved from a CSV download. Filter it, then download what you see.</p>
         </header>
+
+        <?php if (isset($_GET['deleted'])): ?>
+            <div class="notice" role="status"><?= (int)$_GET['deleted'] ?> trade<?= (int)$_GET['deleted'] === 1 ? '' : 's' ?> deleted.</div>
+        <?php endif; ?>
 
         <form method="get" class="panel">
             <div class="row g-3">
@@ -85,15 +102,22 @@ $query = fn($p) => '?' . http_build_query(array_merge($f, ['per_page' => $perPag
         </div>
         <p class="stat-note">Total amount counts <code>amount</code> for currency code 2, otherwise <code>total</code>. Stats cover every filtered trade, not just this page.</p>
 
+        <form method="post" id="del-form">
+        <input type="hidden" name="return" value="<?= htmlspecialchars($_SERVER['QUERY_STRING'] ?? '') ?>">
+        <div class="d-flex justify-content-end mb-2">
+            <button type="submit" class="btn btn-outline-danger btn-sm" id="del-btn" disabled>Delete selected</button>
+        </div>
         <div class="table-wrap">
             <table class="table table-hover">
                 <thead><tr>
+                    <th><input type="checkbox" class="form-check-input" id="check-all" aria-label="Select all trades on this page"></th>
                     <th>Date</th><th>Time</th><th>Customer</th><th>Type</th><th>Currency</th>
                     <th>Cv currency</th><th class="num">Amount</th><th class="num">Rate</th><th class="num">Total</th>
                 </tr></thead>
                 <tbody>
                 <?php foreach ($rows as $r): ?>
                     <tr>
+                        <td><input type="checkbox" class="form-check-input row-check" name="delete_ids[]" value="<?= (int)$r['id'] ?>" aria-label="Select trade"></td>
                         <td><?= date('d-m-Y', strtotime($r['trade_date'])) ?></td>
                         <td class="num text-start"><?= substr($r['trade_time'], 0, 5) ?></td>
                         <td class="num text-start"><?= htmlspecialchars($r['customer_code']) ?></td>
@@ -105,10 +129,11 @@ $query = fn($p) => '?' . http_build_query(array_merge($f, ['per_page' => $perPag
                         <td class="num"><?= $r['total'] ?></td>
                     </tr>
                 <?php endforeach; ?>
-                <?php if (!$rows): ?><tr><td colspan="9" class="text-center text-muted py-4">No trades match these filters. Widen the dates or reset the filters.</td></tr><?php endif; ?>
+                <?php if (!$rows): ?><tr><td colspan="10" class="text-center text-muted py-4">No trades match these filters. Widen the dates or reset the filters.</td></tr><?php endif; ?>
                 </tbody>
             </table>
         </div>
+        </form>
 
         <nav aria-label="Pages"><ul class="pagination">
             <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>"><a class="page-link" href="<?= $query($page - 1) ?>">Previous</a></li>
@@ -117,5 +142,25 @@ $query = fn($p) => '?' . http_build_query(array_merge($f, ['per_page' => $perPag
         </ul></nav>
     </main>
 </div>
+<script>
+    const delForm = document.getElementById('del-form');
+    const checks = () => [...delForm.querySelectorAll('.row-check')];
+    function syncSelection() {
+        const n = checks().filter(c => c.checked).length;
+        const btn = document.getElementById('del-btn');
+        btn.disabled = n === 0;
+        btn.textContent = n ? 'Delete selected (' + n + ')' : 'Delete selected';
+        document.getElementById('check-all').checked = n > 0 && n === checks().length;
+    }
+    document.getElementById('check-all').addEventListener('change', e => {
+        checks().forEach(c => c.checked = e.target.checked);
+        syncSelection();
+    });
+    delForm.addEventListener('change', e => e.target.classList.contains('row-check') && syncSelection());
+    delForm.addEventListener('submit', e => {
+        const n = checks().filter(c => c.checked).length;
+        if (!confirm('Delete ' + n + ' selected trade' + (n === 1 ? '' : 's') + '? This cannot be undone.')) e.preventDefault();
+    });
+</script>
 <?php include 'footer.php'; ?>
 </body>
