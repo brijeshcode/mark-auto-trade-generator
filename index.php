@@ -598,8 +598,7 @@
                 // Use custom header names for CSV first row
                 columnOrder.map(col => `"${columnHeaders[col] || col}"`).join(","),
                 ...finalTransactions.map(row =>
-                    // Date as ="dd/mm/yyyy" so Excel keeps it as written instead of re-formatting it to d/mm/yyyy.
-                    columnOrder.map(key => key === "date" ? `"=""${String(row[key]).replace(/-/g, "/")}"""` : `"${row[key]}"`).join(",")
+                    columnOrder.map(key => `"${row[key]}"`).join(",")
                 )
             ];
 

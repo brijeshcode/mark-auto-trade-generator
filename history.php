@@ -26,7 +26,7 @@ if (isset($_GET['download'])) {
     $out = fopen('php://output', 'w');
     fputcsv($out, ['Date', 'Time', 'Customer Code', 'Buy', 'Currency Code', 'Cv Currency', 'Amount', 'Rate', 'Total']);
     foreach ($tradesObj->all($f) as $r) {
-        fputcsv($out, ['="' . date('d/m/Y', strtotime($r['trade_date'])) . '"', substr($r['trade_time'], 0, 5), $r['customer_code'],
+        fputcsv($out, [date('d-m-Y', strtotime($r['trade_date'])), substr($r['trade_time'], 0, 5), $r['customer_code'],
             $r['transaction_type'], $r['currency_code'], $r['cv_currency'], $r['amount'], $r['rate'], $r['total']]);
     }
     exit;
