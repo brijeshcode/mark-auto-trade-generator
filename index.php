@@ -317,7 +317,9 @@
                 const value = counted(tx);
                 const pick = availableCodes.findIndex(code => value <= settings.amount_limit - (parseFloat(settings.used_amounts[code]) || 0));
                 if (pick === -1) {
-                    const msg = `No customer is available in range ${customerCodeFrom}-${customerCodeTo} for the limit ${settings.amount_limit} over the last ${settings.restriction_days} days (${transactions.length} trades to place, a ${tx.buy} of ${value} could not be assigned).`;
+                    const msg = value > settings.amount_limit
+                        ? `A ${tx.buy} trade of ${value} (currency ${tx.currency_code}) is above the customer amount upper limit of ${settings.amount_limit}, so no customer can take it. Add more trades for that currency or raise the limit.`
+                        : `No customer is available in range ${customerCodeFrom}-${customerCodeTo} for the limit ${settings.amount_limit} over the last ${settings.restriction_days} days (${transactions.length} trades to place, a ${tx.buy} of ${value} could not be assigned).`;
                     errors.push(msg);
                     displayErrors();
                     throw new Error(msg);
@@ -596,7 +598,8 @@
                 // Use custom header names for CSV first row
                 columnOrder.map(col => `"${columnHeaders[col] || col}"`).join(","),
                 ...finalTransactions.map(row =>
-                    columnOrder.map(key => `"${row[key]}"`).join(",")
+                    // Date as ="dd/mm/yyyy" so Excel keeps it as written instead of re-formatting it to d/mm/yyyy.
+                    columnOrder.map(key => key === "date" ? `"=""${String(row[key]).replace(/-/g, "/")}"""` : `"${row[key]}"`).join(",")
                 )
             ];
 
